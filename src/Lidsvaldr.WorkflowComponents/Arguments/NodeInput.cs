@@ -69,6 +69,8 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        public bool ValueReady => _valueReady;
+
         public event Action ValueCaptured;
     }
 }

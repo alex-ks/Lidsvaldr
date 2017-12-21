@@ -12,6 +12,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 
         internal NotifyingQueue<object> Queue
         {
+            get
+            {
+                return _queue;
+            }
+
             set
             {
                 _queue.ValueEnqueued -= ValueEnqueued;
