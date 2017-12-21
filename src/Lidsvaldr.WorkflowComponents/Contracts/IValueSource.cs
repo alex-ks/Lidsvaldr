@@ -5,8 +5,8 @@ namespace Lidsvaldr.WorkflowComponents
 {
     public interface IValueSource
     {
-        Task<object> Pull();
-        Task Push(IValueSource item);
+        bool Pull(out object value);
+        
         bool IsExhausted { get; }
         bool IsValueReady { get; }
         Type ValueType { get; }

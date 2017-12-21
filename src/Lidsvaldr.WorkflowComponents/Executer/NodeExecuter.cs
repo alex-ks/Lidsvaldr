@@ -31,7 +31,9 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 }
                 for (int i = 0; i < value.Length; i++)
                 {
-                    _inputs[i].Push(value[i]);
+                    // TODO: fix
+                    // _inputs[i].Push(value[i]);
+                    throw new NotImplementedException();
                 }
             }
         }
@@ -53,7 +55,9 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 }
                 for (int i = 0; i < value.Length; i++)
                 {
-                    _outputs[i].Push(value[i]);
+                    // TODO: fix
+                    // _outputs[i].Push(value[i]);
+                    throw new NotImplementedException();
                 }
             }
         }

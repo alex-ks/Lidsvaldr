@@ -5,22 +5,20 @@ namespace Lidsvaldr.WorkflowComponents
 {
     public abstract class AbstractValueSource<T> : IValueSource
     {
-        public abstract bool IsExhausted { get; protected set; }
+        public abstract bool IsExhausted { get; }
         public abstract bool IsValueReady { get; }
-        public abstract Type ValueType { get; }
 
         public abstract event Action<IValueSource> ValueReady;
 
-        public abstract Task<T> Pull();
-        public abstract Task Push(IValueSource item);
+        public abstract bool Pull(out T value);
 
-        async Task<object> IValueSource.Pull()
+        Type IValueSource.ValueType { get; } = typeof(T);
+
+        bool IValueSource.Pull(out object value)
         {
-            return await Pull();
-        }
-        async Task IValueSource.Push(IValueSource item)
-        {
-            await Push(item);
+            var succeeded = Pull(out T val);
+            value = val;
+            return succeeded;
         }
     }
 }
