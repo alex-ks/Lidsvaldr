@@ -68,5 +68,14 @@ namespace Lidsvaldr.WorkflowComponents {
                 return ResourceManager.GetString("InputTypeMismatch", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Function should has at least one input parameter.
+        /// </summary>
+        public static string InvalidInputDelegate {
+            get {
+                return ResourceManager.GetString("InvalidInputDelegate", resourceCulture);
+            }
+        }
     }
 }

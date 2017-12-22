@@ -8,33 +8,15 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public class NodeOutput
     {
+        #region private fields
         private readonly Type _valueType;
         private readonly SortedSet<OutputSource> _sources = new SortedSet<OutputSource>();
         private readonly object _lockGuard = new object();
-
         private bool _exclusiveModeEnabled;
         private NotifyingQueue<object> _globalQueue;
+        #endregion private fields
 
-        private void InitQueues()
-        {
-            if (_exclusiveModeEnabled)
-            {
-                _globalQueue = new NotifyingQueue<object>();
-                foreach (var source in _sources)
-                {
-                    source.Queue = _globalQueue;
-                }
-            }
-            else
-            {
-                foreach (var source in _sources.Skip(1))
-                {
-                    source.Queue = new NotifyingQueue<object>();
-                }
-                _globalQueue = null;
-            }
-        }
-
+        #region public methods
         public bool ExclusiveModeEnabled
         {
             get { return _exclusiveModeEnabled; }
@@ -75,7 +57,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 }
             }
         }
+        #endregion public methods
 
+        #region internal methods
         internal IValueSource TakeValueSource()
         {
             lock (_lockGuard)
@@ -95,5 +79,28 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 return source;
             }
         }
+        #endregion internal methods
+
+        #region private methods
+        private void InitQueues()
+        {
+            if (_exclusiveModeEnabled)
+            {
+                _globalQueue = new NotifyingQueue<object>();
+                foreach (var source in _sources)
+                {
+                    source.Queue = _globalQueue;
+                }
+            }
+            else
+            {
+                foreach (var source in _sources.Skip(1))
+                {
+                    source.Queue = new NotifyingQueue<object>();
+                }
+                _globalQueue = null;
+            }
+        }
+        #endregion private methods
     }
 }

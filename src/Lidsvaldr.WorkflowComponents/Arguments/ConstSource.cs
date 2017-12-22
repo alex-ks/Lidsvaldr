@@ -6,11 +6,27 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public sealed class ConstSource<T> : AbstractValueSource<T>
     {
+        #region private fileds
+        private readonly T _value;
+        private readonly bool _exhaustible;
+        private bool _exhausted;
+        #endregion private fields
+
+        #region public fields
         public override bool IsExhausted => _exhausted;
 
-        public override bool IsValueReady => _exhausted;
+        public override bool IsValueReady => !_exhausted;
 
         public override event Action<IValueSource> ValueReady;
+        #endregion public fields
+
+        #region public methods
+        public ConstSource(T value, bool exhaustible = true)
+        {
+            _value = value;
+            _exhaustible = exhaustible;
+            _exhausted = false;
+        }
 
         public override bool Pull(out T value)
         {
@@ -30,16 +46,6 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             value = default(T);
             return false;
         }
-
-        private readonly T _value;
-        private readonly bool _exhaustible;
-        private bool _exhausted;
-
-        public ConstSource(T value, bool exhaustible = true)
-        {
-            _value = value;
-            _exhaustible = exhaustible;
-            _exhausted = false;
-        }
+        #endregion public methods
     }
 }

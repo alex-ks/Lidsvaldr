@@ -7,12 +7,11 @@ namespace Lidsvaldr.WorkflowComponents
     {
         public abstract bool IsExhausted { get; }
         public abstract bool IsValueReady { get; }
+        Type IValueSource.ValueType { get; } = typeof(T);
 
         public abstract event Action<IValueSource> ValueReady;
 
         public abstract bool Pull(out T value);
-
-        Type IValueSource.ValueType { get; } = typeof(T);
 
         bool IValueSource.Pull(out object value)
         {

@@ -10,13 +10,17 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 {
     public class NodeExecuter : INodeExecuter
     {
-        public Func<IValueSource[], IValueSource[]> function { get; private set; }
+        #region private fields
+        private NodeInput[] _inputs;
+        private NodeOutput[] _outputs;
+        #endregion private fields
 
-        public bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.IsValueReady)); } }
+        #region public fields
+        public Delegate function { get; private set; }
 
-        private IValueSource[] _inputs;
+        public bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.ValueReady)); } }
 
-        public IValueSource[] Inputs
+        public NodeInput[] Inputs
         {
             get { return _inputs; }
             private set
@@ -38,9 +42,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
         }
 
-        private IValueSource[] _outputs;
-
-        public IValueSource[] Outputs
+        public NodeOutput[] Outputs
         {
             get { return _outputs; }
             private set
@@ -61,19 +63,61 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 }
             }
         }
+        #endregion public fields
 
-        public NodeExecuter(Func<IValueSource[], IValueSource[]> function)
-        {
-            this.function = function;
-        }
+        #region public methods
+        //public NodeExecuter(Func<IValueSource[], IValueSource[]> function)
+        //{
+        //    this.function = function;
+        //}
 
-        public async Task Execute()
+        public NodeExecuter(Delegate d)
         {
-            while (!IsInputReady)
+            function = d;
+            var method = d.Method;
+            var parameters = method.GetParameters();
+
+            _inputs = parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.GetType())).ToArray();
+            if (_inputs.Count() == 0)
             {
-                await Task.Delay(500);
+                throw new ArgumentException(ComponentsResources.InvalidInputDelegate);
             }
-            Outputs = function(Inputs);
+            foreach (var input in _inputs)
+            {
+                input.ValueCaptured += Execute;
+            }
+
+            var outputs = Enumerable.Empty<NodeOutput>().ToList();
+            outputs.AddRange(parameters.Where(p => p.IsOut).Select(p => new NodeOutput(p.GetType())));
+            if (method.ReturnType != typeof(void))
+            {
+                outputs.Add(new NodeOutput(method.ReturnType));
+            }
+            _outputs = outputs.ToArray();
         }
+
+        public void Execute()
+        {
+            if (!IsInputReady)
+                return;
+            var parameters = Inputs.Select(i => {
+                object obj;
+                i.TryGetValue(out obj);
+                return obj;
+            }).ToList();
+            var outParameters = (Outputs.Any()) ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : Enumerable.Empty<object>();
+            parameters.AddRange(outParameters);
+            var result = function.Method.Invoke(this, parameters.ToArray());
+            for(int i = 0; i < outParameters.Count(); i++)
+            {
+                //TODO cast parameters?
+                Outputs[i].Push(parameters[i + Inputs.Count()]);
+            }
+            if (function.Method.ReturnType != typeof(void))
+            {
+                Outputs.Last().Push(result);
+            }
+        }
+        #endregion public methods
     }
 }

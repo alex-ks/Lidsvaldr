@@ -120,4 +120,7 @@
   <data name="InputTypeMismatch" xml:space="preserve">
     <value>Value source type does not match the input's type</value>
   </data>
+  <data name="InvalidInputDelegate" xml:space="preserve">
+    <value>Function should has at least one input parameter</value>
+  </data>
 </root>
