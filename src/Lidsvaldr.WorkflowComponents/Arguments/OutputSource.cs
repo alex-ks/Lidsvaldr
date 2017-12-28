@@ -23,9 +23,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 
             set
             {
-                _queue.ValueEnqueued -= ValueEnqueued;
-                _queue.QueueLocked -= QueueLocked;
-                _queue.QueueUnloked -= QueueUnlocked;
+                //_queue.ValueEnqueued -= ValueEnqueued;
+                //_queue.QueueLocked -= QueueLocked;
+                //_queue.QueueUnloked -= QueueUnlocked;
                 _queue = value;
                 _queue.ValueEnqueued += ValueEnqueued;
                 _queue.QueueLocked += QueueLocked;

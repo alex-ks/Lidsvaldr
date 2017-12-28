@@ -73,7 +73,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             var method = d.Method;
             var parameters = method.GetParameters();
 
-            _inputs = new NodeArgumentArray<NodeInput>(parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.GetType())).ToArray());
+            _inputs = new NodeArgumentArray<NodeInput>(parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.ParameterType)).ToArray());
             if (_inputs.Count() == 0)
             {
                 throw new ArgumentException(ComponentsResources.InvalidInputDelegate);
@@ -84,7 +84,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
 
             var outputs = Enumerable.Empty<NodeOutput>().ToList();
-            outputs.AddRange(parameters.Where(p => p.IsOut).Select(p => new NodeOutput(p.GetType())));
+            outputs.AddRange(parameters.Where(p => p.IsOut).Select(p => new NodeOutput(p.ParameterType)));
             if (method.ReturnType != typeof(void))
             {
                 outputs.Add(new NodeOutput(method.ReturnType));

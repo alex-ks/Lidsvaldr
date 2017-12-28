@@ -9,7 +9,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
     {
         #region private fields
         private readonly Type _type;
-        private readonly List<IValueSource> _sources;
+        private readonly List<IValueSource> _sources = new List<IValueSource>();
         private readonly object _lockGuard = new object();
         private bool _valueReady = false;
         private volatile bool _capturingValue = false;
