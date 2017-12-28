@@ -13,8 +13,13 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private readonly SortedSet<OutputSource> _sources = new SortedSet<OutputSource>();
         private readonly object _lockGuard = new object();
         private bool _exclusiveModeEnabled;
-        private NotifyingQueue<object> _globalQueue;
+        private OutputSource _globalSource;
+        private readonly QueueSizeEnum _queueSize;
         #endregion private fields
+
+        #region public fields
+        public bool IsLocked { get { return (_globalSource != null && _globalSource.IsLocked) || (_sources != null && _sources.Any(x => x.IsLocked)); } }
+        #endregion public fields
 
         #region public methods
         public bool ExclusiveModeEnabled
@@ -28,16 +33,17 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                     if (value == _exclusiveModeEnabled)
                         return;
                     _exclusiveModeEnabled = value;
-                    InitQueues();
+                    InitQueues(_queueSize);
                 }
             }
         }
 
-        public NodeOutput(Type valueType, bool exclusiveMode = true)
+        public NodeOutput(Type valueType, bool exclusiveMode = true, QueueSizeEnum size = QueueSizeEnum.Small)
         {
             _exclusiveModeEnabled = exclusiveMode;
             _valueType = valueType;
-            InitQueues();
+            _queueSize = size;
+            InitQueues(size);
         }
 
         public void Push(object value)
@@ -46,7 +52,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             {
                 if (_exclusiveModeEnabled)
                 {
-                    _globalQueue.Enqueue(value);
+                    _globalSource.Queue.Enqueue(value);
                 }
                 else
                 {
@@ -67,11 +73,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 NotifyingQueue<object> queue;
                 if (_exclusiveModeEnabled)
                 {
-                    queue = _globalQueue;
+                    queue = _globalSource.Queue;
                 }
                 else
                 {
-                    queue = new NotifyingQueue<object>();
+                    queue = new NotifyingQueue<object>(_queueSize);
                 }
 
                 var source = new OutputSource(_valueType, queue);
@@ -82,23 +88,23 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         #endregion internal methods
 
         #region private methods
-        private void InitQueues()
+        private void InitQueues(QueueSizeEnum size)
         {
             if (_exclusiveModeEnabled)
             {
-                _globalQueue = new NotifyingQueue<object>();
+                _globalSource = new OutputSource(_valueType, new NotifyingQueue<object>(size));
                 foreach (var source in _sources)
                 {
-                    source.Queue = _globalQueue;
+                    source.Queue = _globalSource.Queue;
                 }
             }
             else
             {
                 foreach (var source in _sources.Skip(1))
                 {
-                    source.Queue = new NotifyingQueue<object>();
+                    source.Queue = new NotifyingQueue<object>(size);
                 }
-                _globalQueue = null;
+                _globalSource = null;
             }
         }
         #endregion private methods

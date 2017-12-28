@@ -20,6 +20,8 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 
         public bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.ValueReady)); } }
 
+        public bool IsOutputLock { get { return (Outputs == null || Outputs.Any(x => x.IsLocked)); } }
+
         public NodeInput[] Inputs
         {
             get { return _inputs; }
@@ -29,16 +31,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                     throw new ArgumentNullException();
                 if (_inputs != null && value.Length != _inputs.Length)
                     throw new ArgumentException();
-                if (_inputs == null)
-                {
-                    _inputs = value;
-                }
-                for (int i = 0; i < value.Length; i++)
-                {
-                    // TODO: fix
-                    // _inputs[i].Push(value[i]);
-                    throw new NotImplementedException();
-                }
+                _inputs = value;
             }
         }
 
@@ -51,16 +44,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                     throw new ArgumentNullException();
                 if (_outputs != null && value.Length != _outputs.Length)
                     throw new ArgumentException();
-                if (_outputs == null)
-                {
-                    _outputs = value;
-                }
-                for (int i = 0; i < value.Length; i++)
-                {
-                    // TODO: fix
-                    // _outputs[i].Push(value[i]);
-                    throw new NotImplementedException();
-                }
+                _outputs = value;
             }
         }
         #endregion public fields
@@ -96,9 +80,18 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             _outputs = outputs.ToArray();
         }
 
+        //TODO does it needs an indexer for nodeOutput?
+        public NodeInput this[int index]
+        {
+            get {
+                return this.Inputs[index];
+            }
+            private set { }
+        }
+
         public void Execute()
         {
-            if (!IsInputReady)
+            if (!IsInputReady || IsOutputLock)
                 return;
             var parameters = Inputs.Select(i => {
                 object obj;

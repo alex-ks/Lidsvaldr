@@ -14,9 +14,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         #endregion private fields
 
         #region public fields
-        public override bool IsExhausted => _hasNext & (!_exhausted);
+        public override bool IsExhausted => /*!_hasNext &&*/ _exhausted;
 
-        public override bool IsValueReady => _hasNext & (!_exhausted);
+        public override bool IsValueReady => /*_hasNext &&*/ !_exhausted;
 
         public override event Action<IValueSource> ValueReady;
         #endregion public fields
