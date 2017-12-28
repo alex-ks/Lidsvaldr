@@ -110,11 +110,11 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 for (int i = 0; i < outParameters.Count(); i++)
                 {
                     //TODO cast parameters?
-                    Outputs[i].Push(parameters[i + Inputs.Count()]);
+                    Outputs[i].TryPush(parameters[i + Inputs.Count()]);
                 }
                 if (function.Method.ReturnType != typeof(void))
                 {
-                    Outputs.Last().Push(result);
+                    Outputs.Last().TryPush(result);
                 }
             }
         }

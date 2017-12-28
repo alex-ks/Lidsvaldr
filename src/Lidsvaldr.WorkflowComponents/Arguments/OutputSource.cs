@@ -7,13 +7,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     internal sealed class OutputSource : IValueSource
     {
-        #region private fields
         private readonly Type _valueType;
         private NotifyingQueue<object> _queue;
-        private bool _queueLocked;
-        #endregion private fields
 
-        #region internal fields
+        public event Action OutputUnlocked;
+
         internal NotifyingQueue<object> Queue
         {
             get
@@ -23,33 +21,29 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 
             set
             {
-                //_queue.ValueEnqueued -= ValueEnqueued;
-                //_queue.QueueLocked -= QueueLocked;
-                //_queue.QueueUnloked -= QueueUnlocked;
+                if (_queue != null)
+                {
+                    _queue.ValueEnqueued -= ValueEnqueued;
+                    _queue.QueueUnlocked -= QueueUnlocked;
+                }
                 _queue = value;
                 _queue.ValueEnqueued += ValueEnqueued;
-                _queue.QueueLocked += QueueLocked;
-                _queue.QueueUnloked += QueueUnlocked;
+                _queue.QueueUnlocked += QueueUnlocked;
             }
         }
-        #endregion internal fields
 
-        #region public fields
         public bool IsExhausted => false;
 
         public bool IsValueReady => !_queue.Empty();
 
         public Type ValueType => _valueType;
 
-        public bool IsLocked => _queueLocked;
+        public bool IsLocked => _queue.IsLocked;
 
         public event Action<IValueSource> ValueReady;
-        #endregion public fields
 
-        #region public methods
         public OutputSource(Type valueType, NotifyingQueue<object> queue)
         {
-            _queueLocked = false;
             Queue = queue;
             _valueType = valueType;
         }
@@ -58,21 +52,15 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         {
             return _queue.TryDequeue(out value);
         }
-        #endregion public methods
 
-        #region private methods
         private void ValueEnqueued()
         {
             ValueReady?.Invoke(this);
         }
 
-        private void QueueLocked() {
-            _queueLocked = true;
+        private void QueueUnlocked()
+        {
+            OutputUnlocked?.Invoke();
         }
-
-        private void QueueUnlocked() {
-            _queueLocked = false;
-        }
-        #endregion private methods
     }
 }

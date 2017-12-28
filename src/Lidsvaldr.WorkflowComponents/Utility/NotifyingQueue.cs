@@ -4,22 +4,27 @@ using System.Text;
 
 namespace Lidsvaldr.WorkflowComponents.Utility
 {
+    public static class QueueSizes
+    {
+        public const int Small = 5;
+        public const int Medium = 10;
+        public const int Large = 50;
+    }
+
     public sealed class NotifyingQueue<T>
     {
-        #region private fields
-        private readonly Queue<T> _queue = new Queue<T> ();
+        private readonly Queue<T> _queue;
         private readonly object _lockGuard = new object();
-        private QueueSizeEnum _size;
+        private int _size;
 
         private bool _queueLocked;
-        #endregion private fields
 
-        #region public fields
+        public bool IsLocked => _queueLocked;
+
         public event Action ValueEnqueued;
-        public event Action QueueLocked;
-        public event Action QueueUnloked;
+        public event Action QueueUnlocked;
 
-        public QueueSizeEnum Size
+        public int MaxSize
         {
             get { return _size; }
             set
@@ -35,7 +40,7 @@ namespace Lidsvaldr.WorkflowComponents.Utility
                         if (value > oldSize)
                         {
                             _queueLocked = false;
-                            QueueUnloked?.Invoke();
+                            QueueUnlocked?.Invoke();
                         }
                     }
                     else
@@ -43,21 +48,20 @@ namespace Lidsvaldr.WorkflowComponents.Utility
                         if (value < oldSize)
                         {
                             _queueLocked = true;
-                            QueueLocked?.Invoke();
                         }
                     }
                 }
             }
         }
-        #endregion public fields
 
-        #region public methods
-        public NotifyingQueue(QueueSizeEnum size = QueueSizeEnum.Small) {
+        public NotifyingQueue(int maxSize = QueueSizes.Small)
+        {
+            _queue = new Queue<T>(maxSize);
             _queueLocked = false;
-            _size = size;
+            _size = maxSize;
         }
 
-        public void Enqueue(T value)
+        public bool TryEnqueue(T value)
         {
             lock (_lockGuard)
             {
@@ -65,12 +69,13 @@ namespace Lidsvaldr.WorkflowComponents.Utility
                 {
                     _queue.Enqueue(value);
                     ValueEnqueued?.Invoke();
-                    if (_queue.Count == (int)_size)
+                    if (_queue.Count >= _size)
                     {
                         _queueLocked = true;
-                        QueueLocked?.Invoke();
                     }
+                    return true;
                 }
+                return false;
             }
         }
 
@@ -84,10 +89,10 @@ namespace Lidsvaldr.WorkflowComponents.Utility
                     return false;
                 }
                 value = _queue.Dequeue();
-                if(_queueLocked && _queue.Count < (int)_size)
+                if(_queueLocked && _queue.Count < _size)
                 {
                     _queueLocked = false;
-                    QueueUnloked?.Invoke();
+                    QueueUnlocked?.Invoke();
                 }
                 return true;
             }
@@ -100,6 +105,5 @@ namespace Lidsvaldr.WorkflowComponents.Utility
                 return _queue.Count == 0;
             }
         }
-        #endregion public methods
     }
 }

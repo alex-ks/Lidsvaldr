@@ -8,21 +8,29 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public class NodeOutput
     {
-        #region private fields
         private readonly Type _valueType;
         private readonly SortedSet<OutputSource> _sources = new SortedSet<OutputSource>();
         private readonly object _lockGuard = new object();
         private bool _exclusiveModeEnabled;
         private OutputSource _globalSource;
-        private QueueSizeEnum _queueSize;
-        #endregion private fields
+        private int _queueSize;
 
-        #region public fields
-        public bool IsLocked { get { return (_globalSource != null && _globalSource.IsLocked) || (_sources != null && _sources.Any(x => x.IsLocked)); } }
+        public event Action OutputUnlocked;
 
-        public QueueSizeEnum QueueSize {
+        public bool IsLocked
+        {
+            get
+            {
+                return (_exclusiveModeEnabled && _globalSource.IsLocked) 
+                    || (!_exclusiveModeEnabled && _sources.Any(x => x.IsLocked));
+            }
+        }
+
+        public int QueueSize
+        {
             get { return _queueSize; }
-            set {
+            set
+            {
                 lock (_lockGuard)
                 {
                     if (value == _queueSize)
@@ -30,21 +38,16 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                     _queueSize = value;
                     if (_globalSource != null)
                     {
-                        _globalSource.Queue.Size = value;
+                        _globalSource.Queue.MaxSize = value;
                     }
-                    if (_sources != null)
+                    foreach (var source in _sources)
                     {
-                        foreach (var source in _sources)
-                        {
-                            source.Queue.Size = value;
-                        }
+                        source.Queue.MaxSize = value;
                     }
                 }
             }
         }
-        #endregion public fields
 
-        #region public methods
         public bool ExclusiveModeEnabled
         {
             get { return _exclusiveModeEnabled; }
@@ -61,7 +64,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
-        public NodeOutput(Type valueType, bool exclusiveMode = true, QueueSizeEnum size = QueueSizeEnum.Small)
+        public NodeOutput(Type valueType, bool exclusiveMode = true, int size = QueueSizes.Small)
         {
             _exclusiveModeEnabled = exclusiveMode;
             _valueType = valueType;
@@ -69,26 +72,29 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             InitQueues(size);
         }
 
-        public void Push(object value)
+        public bool TryPush(object value)
         {
             lock (_lockGuard)
             {
+                if (IsLocked)
+                {
+                    return false;
+                }
                 if (_exclusiveModeEnabled)
                 {
-                    _globalSource.Queue.Enqueue(value);
+                    return _globalSource.Queue.TryEnqueue(value);
                 }
                 else
                 {
                     foreach (var source in _sources)
                     {
-                        source.Queue.Enqueue(value);
+                        source.Queue.TryEnqueue(value);
                     }
+                    return true;
                 }
             }
         }
-        #endregion public methods
 
-        #region internal methods
         internal IValueSource TakeValueSource()
         {
             lock (_lockGuard)
@@ -104,14 +110,19 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 }
 
                 var source = new OutputSource(_valueType, queue);
+                source.OutputUnlocked += () =>
+                {
+                    if (!IsLocked)
+                    {
+                        OutputUnlocked?.Invoke();
+                    }
+                };
                 _sources.Add(source);
                 return source;
             }
         }
-        #endregion internal methods
 
-        #region private methods
-        private void InitQueues(QueueSizeEnum size)
+        private void InitQueues(int size)
         {
             if (_exclusiveModeEnabled)
             {
@@ -130,6 +141,5 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 _globalSource = null;
             }
         }
-        #endregion private methods
     }
 }

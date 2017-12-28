@@ -7,22 +7,18 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public sealed class NodeInput
     {
-        #region private fields
         private readonly Type _type;
         private readonly List<IValueSource> _sources = new List<IValueSource>();
         private readonly object _lockGuard = new object();
         private bool _valueReady = false;
         private volatile bool _capturingValue = false;
         private object _capturedValue = null;
-        #endregion private fields
 
-        #region public fields
         public bool ValueReady => _valueReady;
         public event Action ValueCaptured;
-        #endregion public fields
 
-        #region public methods
-        public NodeInput(Type t) {
+        public NodeInput(Type t)
+        {
             _type = t;
         }
 
@@ -62,9 +58,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 }
             }
         }
-        #endregion public methods
 
-        #region private methods
         // With this implementation there is a risk of spamming by quickly reloading source
         private void TryCaptureValue(IValueSource source)
         {
@@ -73,7 +67,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 if (_capturingValue)
                     return;
                 _capturingValue = true;
-                using (new ScopeGuard(() => _capturingValue = false))
+                try
                 {
                     if (!_valueReady)
                     {
@@ -89,8 +83,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                         }
                     }
                 }
+                finally
+                {
+                    _capturingValue = false;
+                }
             }
         }
-        #endregion private methods
     }
 }
