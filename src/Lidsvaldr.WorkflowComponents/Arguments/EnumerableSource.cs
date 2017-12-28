@@ -9,7 +9,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         #region private fields
         private readonly IEnumerator<T> _enumerator;
         private bool _hasNext;
-        private readonly bool _exhaustible;
+        private bool _exhaustible;
         private bool _exhausted;
         #endregion private fields
 
@@ -17,6 +17,18 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         public override bool IsExhausted => /*!_hasNext &&*/ _exhausted;
 
         public override bool IsValueReady => /*_hasNext &&*/ !_exhausted;
+
+        public bool Exhaustible
+        {
+            get { return _exhaustible; }
+            set
+            {
+                if (_exhaustible == value)
+                    return;
+                _exhaustible = value;
+                _exhausted = false;
+            }
+        }
 
         public override event Action<IValueSource> ValueReady;
         #endregion public fields
@@ -37,7 +49,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             {
                 value = _enumerator.Current;
                 _hasNext = _enumerator.MoveNext();
-                if (_hasNext)
+                if (_hasNext || !_exhaustible)
                 {
                     ValueReady?.Invoke(this);
                 }

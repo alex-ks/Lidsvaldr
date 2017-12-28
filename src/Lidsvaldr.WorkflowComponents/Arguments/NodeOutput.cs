@@ -14,11 +14,34 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private readonly object _lockGuard = new object();
         private bool _exclusiveModeEnabled;
         private OutputSource _globalSource;
-        private readonly QueueSizeEnum _queueSize;
+        private QueueSizeEnum _queueSize;
         #endregion private fields
 
         #region public fields
         public bool IsLocked { get { return (_globalSource != null && _globalSource.IsLocked) || (_sources != null && _sources.Any(x => x.IsLocked)); } }
+
+        public QueueSizeEnum QueueSize {
+            get { return _queueSize; }
+            set {
+                lock (_lockGuard)
+                {
+                    if (value == _queueSize)
+                        return;
+                    _queueSize = value;
+                    if (_globalSource != null)
+                    {
+                        _globalSource.Queue.Size = value;
+                    }
+                    if (_sources != null)
+                    {
+                        foreach (var source in _sources)
+                        {
+                            source.Queue.Size = value;
+                        }
+                    }
+                }
+            }
+        }
         #endregion public fields
 
         #region public methods

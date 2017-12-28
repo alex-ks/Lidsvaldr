@@ -40,6 +40,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        public void Add(NodeOutput source)
+        {
+            Add(source.TakeValueSource());
+        }
+
         public bool TryGetValue(out object value)
         {
             lock (_lockGuard)

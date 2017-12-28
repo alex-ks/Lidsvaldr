@@ -1,5 +1,6 @@
 ﻿using Lidsvaldr.WorkflowComponents.Arguments;
 using Lidsvaldr.WorkflowComponents.Contracts;
+using Lidsvaldr.WorkflowComponents.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,8 +12,10 @@ namespace Lidsvaldr.WorkflowComponents.Executer
     public class NodeExecuter : INodeExecuter
     {
         #region private fields
-        private NodeInput[] _inputs;
-        private NodeOutput[] _outputs;
+        private NodeArgumentArray<NodeInput> _inputs;
+        private NodeArgumentArray<NodeOutput> _outputs;
+        private readonly object _lockGuard = new object();
+        private int _threadLimit;
         #endregion private fields
 
         #region public fields
@@ -22,29 +25,37 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 
         public bool IsOutputLock { get { return (Outputs == null || Outputs.Any(x => x.IsLocked)); } }
 
-        public NodeInput[] Inputs
+        public NodeArgumentArray<NodeInput> Inputs
         {
             get { return _inputs; }
             private set
             {
                 if (value == null)
                     throw new ArgumentNullException();
-                if (_inputs != null && value.Length != _inputs.Length)
-                    throw new ArgumentException();
                 _inputs = value;
             }
         }
 
-        public NodeOutput[] Outputs
+        public NodeArgumentArray<NodeOutput> Outputs
         {
             get { return _outputs; }
             private set
             {
                 if (value == null)
                     throw new ArgumentNullException();
-                if (_outputs != null && value.Length != _outputs.Length)
-                    throw new ArgumentException();
                 _outputs = value;
+            }
+        }
+
+        public int ThreadLimit {
+            get { return _threadLimit; }
+            set {
+                lock (_lockGuard)
+                {
+                    if (value == _threadLimit)
+                        return;
+                    _threadLimit = value;
+                }
             }
         }
         #endregion public fields
@@ -55,13 +66,14 @@ namespace Lidsvaldr.WorkflowComponents.Executer
         //    this.function = function;
         //}
 
-        public NodeExecuter(Delegate d)
+        public NodeExecuter(Delegate d, int threadLimit = 1)
         {
+            _threadLimit = threadLimit;
             function = d;
             var method = d.Method;
             var parameters = method.GetParameters();
 
-            _inputs = parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.GetType())).ToArray();
+            _inputs = new NodeArgumentArray<NodeInput>(parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.GetType())).ToArray());
             if (_inputs.Count() == 0)
             {
                 throw new ArgumentException(ComponentsResources.InvalidInputDelegate);
@@ -77,38 +89,33 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             {
                 outputs.Add(new NodeOutput(method.ReturnType));
             }
-            _outputs = outputs.ToArray();
-        }
-
-        //TODO does it needs an indexer for nodeOutput?
-        public NodeInput this[int index]
-        {
-            get {
-                return this.Inputs[index];
-            }
-            private set { }
+            _outputs = new NodeArgumentArray<NodeOutput>(outputs.ToArray());
         }
 
         public void Execute()
         {
             if (!IsInputReady || IsOutputLock)
                 return;
-            var parameters = Inputs.Select(i => {
-                object obj;
-                i.TryGetValue(out obj);
-                return obj;
-            }).ToList();
-            var outParameters = (Outputs.Any()) ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : Enumerable.Empty<object>();
-            parameters.AddRange(outParameters);
-            var result = function.Method.Invoke(this, parameters.ToArray());
-            for(int i = 0; i < outParameters.Count(); i++)
+            lock (_lockGuard)
             {
-                //TODO cast parameters?
-                Outputs[i].Push(parameters[i + Inputs.Count()]);
-            }
-            if (function.Method.ReturnType != typeof(void))
-            {
-                Outputs.Last().Push(result);
+                var parameters = Inputs.Select(i =>
+                {
+                    object obj;
+                    i.TryGetValue(out obj);
+                    return obj;
+                }).ToList();
+                var outParameters = (Outputs.Any()) ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : Enumerable.Empty<object>();
+                parameters.AddRange(outParameters);
+                var result = function.Method.Invoke(this, parameters.ToArray());
+                for (int i = 0; i < outParameters.Count(); i++)
+                {
+                    //TODO cast parameters?
+                    Outputs[i].Push(parameters[i + Inputs.Count()]);
+                }
+                if (function.Method.ReturnType != typeof(void))
+                {
+                    Outputs.Last().Push(result);
+                }
             }
         }
         #endregion public methods

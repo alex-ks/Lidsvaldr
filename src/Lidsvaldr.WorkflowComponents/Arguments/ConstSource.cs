@@ -8,7 +8,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
     {
         #region private fileds
         private readonly T _value;
-        private readonly bool _exhaustible;
+        private bool _exhaustible;
         private bool _exhausted;
         #endregion private fields
 
@@ -16,6 +16,16 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         public override bool IsExhausted => _exhausted;
 
         public override bool IsValueReady => !_exhausted;
+
+        public bool Exhaustible {
+            get { return _exhaustible; }
+            set {
+                if (_exhaustible == value)
+                    return;
+                _exhaustible = value;
+                _exhausted = false;
+            }
+        }
 
         public override event Action<IValueSource> ValueReady;
         #endregion public fields
