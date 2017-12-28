@@ -28,6 +28,8 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 
         public bool DiscardIfLocked { get; set; } = false;
 
+        public Type ValueType => _valueType;
+
         public int QueueSize
         {
             get { return _queueSize; }

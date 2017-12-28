@@ -41,6 +41,16 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             Add(source.TakeValueSource());
         }
 
+        public void Add<T>(T constant, bool exhaustible = true)
+        {
+            Add(new ConstSource<T>(constant, exhaustible));
+        }
+
+        public void Add<T>(IEnumerable<T> collection, bool exhaustible = true)
+        {
+            Add(new EnumerableSource<T>(collection, exhaustible));
+        }
+
         public bool TryTakeValue(out object value)
         {
             lock (_lockGuard)

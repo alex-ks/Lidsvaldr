@@ -6,14 +6,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public class EnumerableSource<T> : AbstractValueSource<T>
     {
-        #region private fields
         private readonly IEnumerator<T> _enumerator;
         private bool _hasNext;
         private bool _exhaustible;
         private bool _exhausted;
-        #endregion private fields
 
-        #region public fields
         public override bool IsExhausted => /*!_hasNext &&*/ _exhausted;
 
         public override bool IsValueReady => /*_hasNext &&*/ !_exhausted;
@@ -31,9 +28,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         }
 
         public override event Action<IValueSource> ValueReady;
-        #endregion public fields
 
-        #region public methods
         public EnumerableSource(IEnumerable<T> enumerable, bool exhaustible = true)
         {
             _exhaustible = exhaustible;
@@ -70,6 +65,5 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 }
             }
         }
-        #endregion public methods
     }
 }
