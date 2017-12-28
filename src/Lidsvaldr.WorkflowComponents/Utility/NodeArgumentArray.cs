@@ -19,6 +19,8 @@ namespace Lidsvaldr.WorkflowComponents.Utility
             _array = array;
         }
 
+        public int Length => _array.Length;
+
         public IEnumerator<T> GetEnumerator()
         {
             foreach (T t in _array)

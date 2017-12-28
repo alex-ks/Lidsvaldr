@@ -77,5 +77,14 @@ namespace Lidsvaldr.WorkflowComponents {
                 return ResourceManager.GetString("InvalidInputDelegate", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Thread limit must be positive.
+        /// </summary>
+        public static string ThreadLimitMustBePositive {
+            get {
+                return ResourceManager.GetString("ThreadLimitMustBePositive", resourceCulture);
+            }
+        }
     }
 }

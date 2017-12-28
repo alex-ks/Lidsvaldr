@@ -26,6 +26,8 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        public bool DiscardIfLocked { get; set; } = false;
+
         public int QueueSize
         {
             get { return _queueSize; }
@@ -64,7 +66,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
-        public NodeOutput(Type valueType, bool exclusiveMode = true, int size = QueueSizes.Small)
+        public NodeOutput(Type valueType, bool exclusiveMode = true, int size = QueueSizes.IntLimited)
         {
             _exclusiveModeEnabled = exclusiveMode;
             _valueType = valueType;

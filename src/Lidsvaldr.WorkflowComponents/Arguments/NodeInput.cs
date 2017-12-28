@@ -41,7 +41,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             Add(source.TakeValueSource());
         }
 
-        public bool TryGetValue(out object value)
+        public bool TryTakeValue(out object value)
         {
             lock (_lockGuard)
             {

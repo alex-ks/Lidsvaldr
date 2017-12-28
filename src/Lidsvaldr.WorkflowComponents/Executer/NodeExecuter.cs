@@ -9,47 +9,41 @@ using System.Threading.Tasks;
 
 namespace Lidsvaldr.WorkflowComponents.Executer
 {
-    public class NodeExecuter : INodeExecuter
+    public class NodeExecuter
     {
-        #region private fields
         private NodeArgumentArray<NodeInput> _inputs;
         private NodeArgumentArray<NodeOutput> _outputs;
         private readonly object _lockGuard = new object();
-        private int _threadLimit;
-        #endregion private fields
+        private volatile int _threadLimit;
 
-        #region public fields
-        public Delegate function { get; private set; }
+        private Dictionary<Guid, (DateTime launchTime, List<Action> finishedCallbacks)> _activeTasks
+            = new Dictionary<Guid, (DateTime launchTime, List<Action> finishedCallbacks)>();
 
-        public bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.ValueReady)); } }
+        public Delegate Function { get; private set; }
 
-        public bool IsOutputLock { get { return (Outputs == null || Outputs.Any(x => x.IsLocked)); } }
+        private bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.ValueReady)); } }
+
+        private bool IsOutputLock { get { return (Outputs == null || Outputs.Any(x => x.IsLocked)); } }
+
+        public bool IsBusy => _activeTasks.Count >= ThreadLimit;
 
         public NodeArgumentArray<NodeInput> Inputs
         {
             get { return _inputs; }
-            private set
-            {
-                if (value == null)
-                    throw new ArgumentNullException();
-                _inputs = value;
-            }
+            private set { _inputs = value ?? throw new ArgumentNullException(); }
         }
 
         public NodeArgumentArray<NodeOutput> Outputs
         {
             get { return _outputs; }
-            private set
-            {
-                if (value == null)
-                    throw new ArgumentNullException();
-                _outputs = value;
-            }
+            private set { _outputs = value ?? throw new ArgumentNullException(); }
         }
 
-        public int ThreadLimit {
+        public int ThreadLimit
+        {
             get { return _threadLimit; }
-            set {
+            set
+            {
                 lock (_lockGuard)
                 {
                     if (value == _threadLimit)
@@ -58,29 +52,31 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 }
             }
         }
-        #endregion public fields
 
-        #region public methods
-        //public NodeExecuter(Func<IValueSource[], IValueSource[]> function)
-        //{
-        //    this.function = function;
-        //}
+        public event Action<Exception> ExceptionOccurred;
 
         public NodeExecuter(Delegate d, int threadLimit = 1)
         {
+            if (threadLimit <= 0)
+            {
+                throw new ArgumentException(ComponentsResources.ThreadLimitMustBePositive, nameof(threadLimit));
+            }
+
             _threadLimit = threadLimit;
-            function = d;
+            Function = d;
             var method = d.Method;
             var parameters = method.GetParameters();
 
-            _inputs = new NodeArgumentArray<NodeInput>(parameters.Where(p => !p.IsOut).Select(p => new NodeInput(p.ParameterType)).ToArray());
-            if (_inputs.Count() == 0)
+            _inputs = new NodeArgumentArray<NodeInput>(parameters
+                                                           .Where(p => !p.IsOut)
+                                                           .Select(p => new NodeInput(p.ParameterType)).ToArray());
+            if (_inputs.Length == 0)
             {
                 throw new ArgumentException(ComponentsResources.InvalidInputDelegate);
             }
             foreach (var input in _inputs)
             {
-                input.ValueCaptured += Execute;
+                input.ValueCaptured += () => TryExecute();
             }
 
             var outputs = Enumerable.Empty<NodeOutput>().ToList();
@@ -92,32 +88,120 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             _outputs = new NodeArgumentArray<NodeOutput>(outputs.ToArray());
         }
 
-        public void Execute()
+        private bool TryExecute()
         {
-            if (!IsInputReady || IsOutputLock)
-                return;
             lock (_lockGuard)
             {
+                if (!IsInputReady || IsBusy)
+                    return false;
                 var parameters = Inputs.Select(i =>
                 {
-                    object obj;
-                    i.TryGetValue(out obj);
+                    i.TryTakeValue(out object obj);
                     return obj;
                 }).ToList();
-                var outParameters = (Outputs.Any()) ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : Enumerable.Empty<object>();
+                var outParameters = (Outputs.Any()) ? 
+                    Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : 
+                    Enumerable.Empty<object>().ToArray();
                 parameters.AddRange(outParameters);
-                var result = function.Method.Invoke(this, parameters.ToArray());
-                for (int i = 0; i < outParameters.Count(); i++)
-                {
-                    //TODO cast parameters?
-                    Outputs[i].TryPush(parameters[i + Inputs.Count()]);
-                }
-                if (function.Method.ReturnType != typeof(void))
-                {
-                    Outputs.Last().TryPush(result);
-                }
+
+                Task.Factory.StartNew(() => ExecuteTask(parameters.ToArray(), outParameters.Length));
+
+                return true;
             }
         }
-        #endregion public methods
+
+        private void ExecuteTask(object[] parameters, int outParametersCount)
+        {
+            try
+            {
+                var taskId = Guid.NewGuid();
+                var launchTime = DateTime.Now;
+                _activeTasks.Add(taskId, (launchTime, new List<Action>()));
+                var result = Function.Method.Invoke(this, parameters);
+                lock (_lockGuard)
+                {
+                    var needToWait = new List<(NodeOutput output, object value)>();
+
+                    void FillOutputs()
+                    {
+                        for (int i = 0; i < outParametersCount; i++)
+                        {
+                            var output = Outputs[i];
+                            var value = parameters[i + Inputs.Length];
+                            if (!output.TryPush(value))
+                            {
+                                if (output.DiscardIfLocked)
+                                    continue;
+                                needToWait.Add((output, value));
+                            }
+                        }
+                        if (Function.Method.ReturnType != typeof(void))
+                        {
+                            var output = Outputs[Outputs.Length - 1];
+                            if (!output.DiscardIfLocked)
+                            {
+                                needToWait.Add((output, result));
+                            }
+                        }
+                        void PushWhenUnlocked()
+                        {
+                            lock (_lockGuard)
+                            {
+                                if (needToWait.Any(x => x.output.IsLocked))
+                                    return;
+                                foreach (var (output, value) in needToWait)
+                                {
+                                    output.TryPush(value);
+                                    output.OutputUnlocked -= PushWhenUnlocked;
+                                }
+                                FinishExection(taskId);
+                            }
+                        }
+                        if (needToWait.Count != 0)
+                        {
+                            foreach (var (output, value) in needToWait)
+                            {
+                                output.OutputUnlocked += PushWhenUnlocked;
+                            }
+                        }
+                        else
+                        {
+                            FinishExection(taskId);
+                        }
+                    }
+
+                    var predcessor = _activeTasks.Values
+                        .OrderBy(x => x.launchTime)
+                        .LastOrDefault(x => x.launchTime < launchTime);
+
+                    if (predcessor.finishedCallbacks != null)
+                    {
+                        predcessor.finishedCallbacks.Add(FillOutputs);
+                    }
+                    else
+                    {
+                        FillOutputs();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ExceptionOccurred?.Invoke(e);
+            }
+        }
+
+        private void FinishExection(Guid taskId)
+        {
+            lock (_lockGuard)
+            {
+                var (time, callbacks) = _activeTasks[taskId];
+                _activeTasks.Remove(taskId);
+                foreach (var callback in callbacks)
+                {
+                    callback();
+                }
+                TryExecute();
+            }
+        }
     }
 }

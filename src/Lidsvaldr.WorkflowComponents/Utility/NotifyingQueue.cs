@@ -9,6 +9,7 @@ namespace Lidsvaldr.WorkflowComponents.Utility
         public const int Small = 5;
         public const int Medium = 10;
         public const int Large = 50;
+        public const int IntLimited = int.MaxValue;
     }
 
     public sealed class NotifyingQueue<T>
@@ -54,7 +55,7 @@ namespace Lidsvaldr.WorkflowComponents.Utility
             }
         }
 
-        public NotifyingQueue(int maxSize = QueueSizes.Small)
+        public NotifyingQueue(int maxSize = QueueSizes.IntLimited)
         {
             _queue = new Queue<T>(maxSize);
             _queueLocked = false;

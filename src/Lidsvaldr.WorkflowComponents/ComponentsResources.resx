@@ -123,4 +123,7 @@
   <data name="InvalidInputDelegate" xml:space="preserve">
     <value>Function should has at least one input parameter</value>
   </data>
+  <data name="ThreadLimitMustBePositive" xml:space="preserve">
+    <value>Thread limit must be positive</value>
+  </data>
 </root>
