@@ -7,9 +7,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     public class OutputTerminator<T> : IEnumerable<T>
     {
-        private readonly List<IValueSource> _sources;
+        private readonly List<IValueSource> _sources = new List<IValueSource>();
         private readonly object _lockGuard = new object();
-        private readonly List<T> results;
+        private readonly List<T> _results = new List<T>();
 
         public void Add(NodeOutput output)
         {
@@ -26,16 +26,19 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             lock (_lockGuard)
             {
                 var source = output.TakeValueSource();
-                source.ValueReady += (s) =>
+                source.ValueReady += TryTakeValue;
+                TryTakeValue(source);
+            }
+        }
+
+        private void TryTakeValue(IValueSource source)
+        {
+            if (source.Pull(out object value))
+            {
+                lock (_lockGuard)
                 {
-                    if (s.Pull(out object value))
-                    {
-                        lock (_lockGuard)
-                        {
-                            results.Add((T)value);
-                        }
-                    }
-                };
+                    _results.Add((T)value);
+                }
             }
         }
 
@@ -43,7 +46,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         {
             lock (_lockGuard)
             {
-                foreach (var val in results)
+                foreach (var val in _results)
                 {
                     yield return val;
                 }

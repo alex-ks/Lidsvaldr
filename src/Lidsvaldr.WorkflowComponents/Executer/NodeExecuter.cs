@@ -117,7 +117,8 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 var taskId = Guid.NewGuid();
                 var launchTime = DateTime.Now;
                 _activeTasks.Add(taskId, (launchTime, new List<Action>()));
-                var result = Function.Method.Invoke(this, parameters);
+                var result = Function.DynamicInvoke(parameters);
+
                 lock (_lockGuard)
                 {
                     var needToWait = new List<(NodeOutput output, object value)>();
@@ -138,9 +139,12 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                         if (Function.Method.ReturnType != typeof(void))
                         {
                             var output = Outputs[Outputs.Length - 1];
-                            if (!output.DiscardIfLocked)
+                            if (!output.TryPush(result))
                             {
-                                needToWait.Add((output, result));
+                                if (!output.DiscardIfLocked)
+                                {
+                                    needToWait.Add((output, result));
+                                }
                             }
                         }
                         void PushWhenUnlocked()

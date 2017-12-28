@@ -1,6 +1,7 @@
 ﻿using Lidsvaldr.WorkflowComponents.Utility;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Lidsvaldr.WorkflowComponents.Arguments
@@ -13,8 +14,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private bool _valueReady = false;
         private volatile bool _capturingValue = false;
         private object _capturedValue = null;
+        private int _lastValueSource = 0;
 
-        public bool ValueReady => _valueReady;
+        public bool ValueReady => _valueReady && !_capturingValue;
         public event Action ValueCaptured;
 
         public NodeInput(Type t)
@@ -22,7 +24,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             _type = t;
         }
 
-        public void Add(IValueSource source)
+        internal void AddSource(IValueSource source)
         {
             lock (_lockGuard)
             {
@@ -38,17 +40,17 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
 
         public void Add(NodeOutput source)
         {
-            Add(source.TakeValueSource());
+            AddSource(source.TakeValueSource());
         }
 
         public void Add<T>(T constant, bool exhaustible = true)
         {
-            Add(new ConstSource<T>(constant, exhaustible));
+            AddSource(new ConstSource<T>(constant, exhaustible));
         }
 
         public void Add<T>(IEnumerable<T> collection, bool exhaustible = true)
         {
-            Add(new EnumerableSource<T>(collection, exhaustible));
+            AddSource(new EnumerableSource<T>(collection, exhaustible));
         }
 
         public bool TryTakeValue(out object value)
@@ -60,6 +62,14 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 {
                     _capturedValue = null;
                     _valueReady = false;
+                    if (_lastValueSource == _sources.Count)
+                    {
+                        _lastValueSource = 0;
+                    }
+                    if (_sources.Count != 0)
+                    {
+                        TryCaptureValue(_sources.Skip(_lastValueSource).First());
+                    }
                     return true;
                 }
                 else

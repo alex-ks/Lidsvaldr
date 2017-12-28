@@ -57,7 +57,14 @@ namespace Lidsvaldr.WorkflowComponents.Utility
 
         public NotifyingQueue(int maxSize = QueueSizes.IntLimited)
         {
-            _queue = new Queue<T>(maxSize);
+            if (maxSize != QueueSizes.IntLimited)
+            {
+                _queue = new Queue<T>(maxSize);
+            }
+            else
+            {
+                _queue = new Queue<T>();
+            }
             _queueLocked = false;
             _size = maxSize;
         }
