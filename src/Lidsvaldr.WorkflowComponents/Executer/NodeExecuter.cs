@@ -60,7 +60,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
         /// <summary>
         /// Name of current node.
         /// </summary>
-		public string Name { get; }
+        public string Name { get; }
 
         /// <summary>
         /// Configures node inputs.
@@ -108,7 +108,8 @@ namespace Lidsvaldr.WorkflowComponents.Executer
         /// <param name="d">Delegate that refers to function which node should execute.</param>
         /// <param name="threadLimit">Max thread count.</param>
         /// <param name="name">Node name.</param>
-		public NodeExecuter(Delegate d, int threadLimit = 1, string name = null)        {
+        public NodeExecuter(Delegate d, int threadLimit = 1, string name = null)
+        {
             if (threadLimit <= 0)
             {
                 throw new ArgumentException(ComponentsResources.ThreadLimitMustBePositive, nameof(threadLimit));
@@ -144,7 +145,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             Name = name ?? GenerateNodeName();
         }
 
-		/// <summary>
+        /// <summary>
         /// Generates new name for current node depending on inputs and outputs types.
         /// </summary>
         /// <returns>Node name.</returns>

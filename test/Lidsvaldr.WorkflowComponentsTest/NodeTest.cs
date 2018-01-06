@@ -20,13 +20,11 @@ namespace Lidsvaldr.WorkflowComponentsTest
             node.Inputs[0].Add(2);
             node.Inputs[1].Add(2);
 
-            var resultExtractor = new OutputTerminator<int>();
+            var resultExtractor = node.Outputs[0].Terminate<int>();
 
-            Task.Delay(500).Wait();
+            resultExtractor.WaitForResults(1);
 
-            resultExtractor.Add(node.Outputs[0]);
-
-            Assert.Equal(expected: 4, actual: resultExtractor.First());
+            Assert.Equal(expected: 4, actual: resultExtractor.Results().First());
         }
 
         [Fact]
@@ -45,14 +43,28 @@ namespace Lidsvaldr.WorkflowComponentsTest
             node.Inputs[1].Add(2);
             node.Inputs[1].Add(3);
 
-            var resultExtractor = new OutputTerminator<int>();
+            var resultExtractor = node.Outputs[0].Terminate<int>();
 
-            Task.Delay(1000).Wait();
+            resultExtractor.WaitForResults(2);
 
-            resultExtractor.Add(node.Outputs[0]);
+            Assert.Equal(expected: 4, actual: resultExtractor.Results().First());
+            Assert.Equal(expected: 6, actual: resultExtractor.Results().Skip(1).First());
+        }
 
-            Assert.Equal(expected: 4, actual: resultExtractor.First());
-            Assert.Equal(expected: 6, actual: resultExtractor.Skip(1).First());
+        [Fact]
+        public void SuccessfullEarlyReturnFromWaitTest()
+        {
+            Func<int, int> MyWait = delay =>
+            {
+                Task.Delay(delay).Wait();
+                return delay;
+            };
+            var node = new NodeExecuter(MyWait, 1);
+
+            node.Inputs[0].Add(5000);
+            var resultExtractor = node.Outputs[0].Terminate<int>();
+            resultExtractor.WaitForResults(1, 200);
+            Assert.Empty(resultExtractor.Results());
         }
     }
 }

@@ -5,9 +5,9 @@ using System.Text;
 namespace Lidsvaldr.WorkflowComponents.Arguments
 {
     /// <summary>
-    /// Implements an extension methods for NodeInput entity.
+    /// Implements an extension methods for NodeInput and NodeOutput entities.
     /// </summary>
-    public static class InputExtensions
+    public static class NodeExtensions
     {
         /// <summary>
         /// Links NodeInput and NodeOutput entities by adding output source from specified output entity to list of input sources for specified input entity.
@@ -41,6 +41,13 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         public static void Add<T>(this NodeInput input, IEnumerable<T> collection, bool exhaustible = true)
         {
             input.AddSource(new EnumerableSource<T>(collection, exhaustible));
+        }
+
+        public static OutputTerminator<T> Terminate<T>(this NodeOutput output)
+        {
+            var terminator = new OutputTerminator<T>();
+            terminator.Add(output);
+            return terminator;
         }
     }
 }
