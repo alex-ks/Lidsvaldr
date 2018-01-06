@@ -163,6 +163,12 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             });
         }
 
+        /// <summary>
+        /// Waits until specified amount of outputs/exceptions is collected.
+        /// If specified time-out interval elapses, returns before the results count is reached.
+        /// </summary>
+        /// <param name="resultsCount">Amount of produced results to be waited.</param>
+        /// <param name="millisecondsTimeout">The number of milliseconds to wait before the return</param>
         public void WaitForResults(int resultCount, int millisecondsTimeout)
         {
             WaitForResults(resultCount, TimeSpan.FromMilliseconds(millisecondsTimeout));
