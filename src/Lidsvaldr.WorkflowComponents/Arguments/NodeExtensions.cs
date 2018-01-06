@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lidsvaldr.WorkflowComponents.Executer;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -48,6 +49,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             var terminator = new OutputTerminator<T>();
             terminator.Add(output);
             return terminator;
+        }
+
+        public static NodeExecuter ToNode(this Delegate d, int threadLimit = 1, string name = null)
+        {
+            return new NodeExecuter(d, threadLimit, name);
         }
     }
 }

@@ -118,7 +118,10 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                     {
                         var rng = new Random();
                         var ready = _sources.Where(s => s.IsValueReady).ToArray();
-                        TryCaptureValue(ready[rng.Next(ready.Length)]);
+                        if (ready.Length != 0)
+                        {
+                            TryCaptureValue(ready[rng.Next(ready.Length)]);
+                        }
                     }
                     return true;
                 }
