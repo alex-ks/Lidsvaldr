@@ -6,15 +6,39 @@ using System.Text;
 
 namespace Lidsvaldr.WorkflowComponents.Arguments
 {
+    /// <summary>
+    /// Represents an output entity for node entity.
+    /// </summary>
     public class NodeOutput
     {
+        /// <summary>
+        /// Type of output value.
+        /// </summary>
         private readonly Type _valueType;
+        /// <summary>
+        /// Value source set. Used for non-exclusive mode.
+        /// </summary>
         private readonly SortedSet<OutputSource> _sources = new SortedSet<OutputSource>();
+        /// <summary>
+        /// Mutex.
+        /// </summary>
         private readonly object _lockGuard = new object();
+        /// <summary>
+        /// Indicates whether node output can give value to only one consumer or many consumers.
+        /// </summary>
         private bool _exclusiveModeEnabled;
+        /// <summary>
+        /// Value source. Used for exclusive mode.
+        /// </summary>
         private OutputSource _globalSource;
+        /// <summary>
+        /// Max queue size for source(s) queues.
+        /// </summary>
         private int _queueSize;
 
+        /// <summary>
+        /// Event to notify that the current output is ready for value taking. 
+        /// </summary>
         public event Action OutputUnlocked;
         public event Action<Exception> ExceptionOccurred;
 
@@ -23,6 +47,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             ExceptionOccurred?.Invoke(e);
         }
 
+        /// <summary>
+        /// Indicates whether current output is locked.
+        /// </summary>
         public bool IsLocked
         {
             get
@@ -32,10 +59,19 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        /// <summary>
+        /// Configures whether node should discard attempts to push value if output is locked or should wait until unlocking and try to push value again.
+        /// </summary>
         public bool DiscardIfLocked { get; set; } = false;
 
+        /// <summary>
+        /// Type of output value.
+        /// </summary>
         public Type ValueType => _valueType;
 
+        /// <summary>
+        /// Configures output source(s) queue size.
+        /// </summary>
         public int QueueSize
         {
             get { return _queueSize; }
@@ -58,6 +94,9 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        /// <summary>
+        /// Configures whether node output can give value to only one consumer or many consumers.
+        /// </summary>
         public bool ExclusiveModeEnabled
         {
             get { return _exclusiveModeEnabled; }
@@ -74,6 +113,12 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        /// <summary>
+        /// Class constructor.
+        /// </summary>
+        /// <param name="valueType">Type of output value.</param>
+        /// <param name="exclusiveMode">Indicates whether node output can give value to only one consumer or many consumers.</param>
+        /// <param name="size">Max size of source(s) queue.</param>
         public NodeOutput(Type valueType, bool exclusiveMode = true, int size = QueueSizes.IntLimited)
         {
             _exclusiveModeEnabled = exclusiveMode;
@@ -82,6 +127,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             InitQueues(size);
         }
 
+        /// <summary>
+        /// Tries to push value to output source(s) queue and returns success status.
+        /// </summary>
+        /// <param name="value">Value to push.</param>
+        /// <returns>True if value was successfully pushed or false otherwise.</returns>
         public bool TryPush(object value)
         {
             lock (_lockGuard)
@@ -105,6 +155,10 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        /// <summary>
+        /// Tries to get output value source from current entity.
+        /// </summary>
+        /// <returns>New output source with the same queue as in current entity in exclusive mode or with new queue in non-exclusive mode.</returns>
         internal IValueSource TakeValueSource()
         {
             lock (_lockGuard)
@@ -132,6 +186,10 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             }
         }
 
+        /// <summary>
+        /// Initializes queues with specified size for all sources.
+        /// </summary>
+        /// <param name="size">Max queue size.</param>
         private void InitQueues(int size)
         {
             if (_exclusiveModeEnabled)

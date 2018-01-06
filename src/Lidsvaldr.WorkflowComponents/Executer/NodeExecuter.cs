@@ -1,5 +1,4 @@
 ﻿using Lidsvaldr.WorkflowComponents.Arguments;
-using Lidsvaldr.WorkflowComponents.Contracts;
 using Lidsvaldr.WorkflowComponents.Utility;
 using System;
 using System.Collections.Generic;
@@ -9,38 +8,81 @@ using System.Threading.Tasks;
 
 namespace Lidsvaldr.WorkflowComponents.Executer
 {
+    /// <summary>
+    /// Represents a node entity. 
+    /// Node has a number of inputs and outputs and can execute some function when inputs and outputs are ready for it.
+    /// </summary>
     public class NodeExecuter
     {
+        /// <summary>
+        /// Collection of node inputs.
+        /// </summary>
         private NodeArgumentArray<NodeInput> _inputs;
+        /// <summary>
+        /// Collection of node outputs.
+        /// </summary>
         private NodeArgumentArray<NodeOutput> _outputs;
+        /// <summary>
+        /// Mutex.
+        /// </summary>
         private readonly object _lockGuard = new object();
+        /// <summary>
+        /// Max number of threads which current node can run at the same time.
+        /// </summary>
         private volatile int _threadLimit;
 
+        /// <summary>
+        /// Dictionary for tracking active tasks execution.
+        /// </summary>
         private Dictionary<Guid, (DateTime launchTime, List<Action> finishedCallbacks)> _activeTasks
             = new Dictionary<Guid, (DateTime launchTime, List<Action> finishedCallbacks)>();
 
+        /// <summary>
+        /// Delegate that refers to function which node should execute.
+        /// </summary>
         public Delegate Function { get; private set; }
 
+        /// <summary>
+        /// Indicates whether all node inputs are ready to give value.
+        /// </summary>
         private bool IsInputReady { get { return (Inputs != null && Inputs.All(x => x.ValueReady)); } }
 
+        /// <summary>
+        /// Indicates whether all node outputs are ready to take value.
+        /// </summary>
         private bool IsOutputLock { get { return (Outputs == null || Outputs.Any(x => x.IsLocked)); } }
 
+        /// <summary>
+        /// Indicates if the max number of threads are already runs by current node.
+        /// </summary>
         public bool IsBusy => _activeTasks.Count >= ThreadLimit;
 
-        public string Name { get; }
+        /// <summary>
+        /// Name of current node.
+        /// </summary>
+		public string Name { get; }
 
+        /// <summary>
+        /// Configures node inputs.
+        /// </summary>
         public NodeArgumentArray<NodeInput> Inputs
         {
             get { return _inputs; }
             private set { _inputs = value ?? throw new ArgumentNullException(); }
         }
 
+        /// <summary>
+        /// Configures node outputs.
+        /// </summary>
         public NodeArgumentArray<NodeOutput> Outputs
         {
             get { return _outputs; }
             private set { _outputs = value ?? throw new ArgumentNullException(); }
         }
 
+        /// <summary>
+        /// Configures max number of threads which current node can run at the same time.
+        /// </summary>
         public int ThreadLimit
         {
             get { return _threadLimit; }
@@ -55,10 +97,18 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
         }
 
+        /// <summary>
+        /// Event to notify that an exception has occurred.
+        /// </summary>
         public event Action<Exception> ExceptionOccurred;
 
-        public NodeExecuter(Delegate d, int threadLimit = 1, string name = null)
-        {
+        /// <summary>
+        /// Class constructor. Initializes inputs and outputs depending on the specified delegate.
+        /// </summary>
+        /// <param name="d">Delegate that refers to function which node should execute.</param>
+        /// <param name="threadLimit">Max thread count.</param>
+        /// <param name="name">Node name.</param>
+		public NodeExecuter(Delegate d, int threadLimit = 1, string name = null)        {
             if (threadLimit <= 0)
             {
                 throw new ArgumentException(ComponentsResources.ThreadLimitMustBePositive, nameof(threadLimit));
@@ -94,13 +144,21 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             Name = name ?? GenerateNodeName();
         }
 
+		/// <summary>
+        /// Generates new name for current node depending on inputs and outputs types.
+        /// </summary>
+        /// <returns>Node name.</returns>
         private string GenerateNodeName()
         {
             var inputsPart = String.Join(" * ", Inputs.Select(x => x.ValueType.Name));
             var outputsPart = String.Join(" * ", Outputs.Select(x => x.ValueType.Name));
             return $"{inputsPart} -> {outputsPart}";
-        }
-
+        }        
+        
+        /// <summary>
+        /// Tries to run new thread, execute task and returns success status.
+        /// </summary>
+        /// <returns>True if thread was successfully run or false otherwise.</returns>
         private bool TryExecute()
         {
             lock (_lockGuard)
@@ -123,9 +181,9 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                         return obj;
                     }).ToList();
 
-                    var outParameters = (Outputs.Any()) ?
-                    Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() :
-                    Enumerable.Empty<object>().ToArray();
+                    var outParameters = (Outputs.Any())
+                        ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray()
+                        : Enumerable.Empty<object>().ToArray();
                     parameters.AddRange(outParameters);
 
                     Task.Factory.StartNew(() => ExecuteTask(
@@ -149,6 +207,13 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
         }
 
+        /// <summary>
+        /// Executes node function and gives obtained values to node outputs.
+        /// </summary>
+        /// <param name="taskId">Id of executing task.</param>
+        /// <param name="launchTime">Time when task was started to sort tasks.</param>
+        /// <param name="parameters">Input values.</param>
+        /// <param name="outParametersCount">Number of output values.</param>
         private void ExecuteTask(Guid taskId, DateTime launchTime, object[] parameters, int outParametersCount)
         {
             try
@@ -230,6 +295,10 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
         }
 
+        /// <summary>
+        /// Removes task from tracking list and invokes task's all callbacks.
+        /// </summary>
+        /// <param name="taskId">>Id of task.</param>
         private void FinishExection(Guid taskId)
         {
             lock (_lockGuard)
