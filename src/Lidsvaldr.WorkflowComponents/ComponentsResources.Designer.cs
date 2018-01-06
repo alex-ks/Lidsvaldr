@@ -61,6 +61,15 @@ namespace Lidsvaldr.WorkflowComponents {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An exception was thrown during node execution. See inner exception for details.
+        /// </summary>
+        public static string ExecutionException {
+            get {
+                return ResourceManager.GetString("ExecutionException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Value source type does not match the input&apos;s type.
         /// </summary>
         public static string InputTypeMismatch {

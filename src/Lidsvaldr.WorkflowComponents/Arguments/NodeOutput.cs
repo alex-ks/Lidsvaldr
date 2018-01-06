@@ -16,6 +16,12 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private int _queueSize;
 
         public event Action OutputUnlocked;
+        public event Action<Exception> ExceptionOccurred;
+
+        internal void NotifyAboutException(Exception e)
+        {
+            ExceptionOccurred?.Invoke(e);
+        }
 
         public bool IsLocked
         {

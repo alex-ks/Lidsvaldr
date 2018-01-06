@@ -27,6 +27,8 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 
         public bool IsBusy => _activeTasks.Count >= ThreadLimit;
 
+        public string Name { get; }
+
         public NodeArgumentArray<NodeInput> Inputs
         {
             get { return _inputs; }
@@ -55,7 +57,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 
         public event Action<Exception> ExceptionOccurred;
 
-        public NodeExecuter(Delegate d, int threadLimit = 1)
+        public NodeExecuter(Delegate d, int threadLimit = 1, string name = null)
         {
             if (threadLimit <= 0)
             {
@@ -86,6 +88,17 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                 outputs.Add(new NodeOutput(method.ReturnType));
             }
             _outputs = new NodeArgumentArray<NodeOutput>(outputs.ToArray());
+
+            foreach (var output in _outputs) { ExceptionOccurred += output.NotifyAboutException; }
+
+            Name = name ?? GenerateNodeName();
+        }
+
+        private string GenerateNodeName()
+        {
+            var inputsPart = String.Join(" * ", Inputs.Select(x => x.ValueType.Name));
+            var outputsPart = String.Join(" * ", Outputs.Select(x => x.ValueType.Name));
+            return $"{inputsPart} -> {outputsPart}";
         }
 
         private bool TryExecute()
@@ -213,7 +226,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
             catch (Exception e)
             {
-                ExceptionOccurred?.Invoke(e);
+                ExceptionOccurred(new ExecutionException(Name, parameters, e));
             }
         }
 

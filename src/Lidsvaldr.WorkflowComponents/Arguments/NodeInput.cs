@@ -15,6 +15,8 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private volatile bool _capturingValue = false;
         private object _capturedValue = null;
 
+        internal Type ValueType => _type;
+
         public bool ValueReady => _valueReady;
         public event Action ValueCaptured;
 
