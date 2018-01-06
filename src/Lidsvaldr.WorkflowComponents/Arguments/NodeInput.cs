@@ -38,7 +38,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
             _type = t;
         }
 
-        internal void AddSource(IValueSource source)
+        public void AddSource(IValueSource source)
         {
             lock (_lockGuard)
             {
@@ -50,21 +50,6 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 source.ValueReady += TryCaptureValue;
                 TryCaptureValue(source);
             }
-        }
-
-        public void Add(NodeOutput source)
-        {
-            AddSource(source.TakeValueSource());
-        }
-
-        public void Add<T>(T constant, bool exhaustible = true)
-        {
-            AddSource(new ConstSource<T>(constant, exhaustible));
-        }
-
-        public void Add<T>(IEnumerable<T> collection, bool exhaustible = true)
-        {
-            AddSource(new EnumerableSource<T>(collection, exhaustible));
         }
 
         public bool TryTakeValue(out object value)
