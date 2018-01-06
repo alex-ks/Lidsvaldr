@@ -105,5 +105,31 @@ namespace Lidsvaldr.WorkflowComponentsTest
             Assert.Equal(expected: name, actual: node1.Name);
             Assert.Equal(expected: generatedName, actual: node2.Name);
         }
+
+        delegate int MyDelegate(int i, float f, out double d);
+
+        [Fact]
+        public void MultipleOutputsTest()
+        {
+            int MyFunc(int i, float f, out double d)
+            {
+                d = i * f ;
+                return (int)(i * f);
+            }
+
+            var node = new MyDelegate(MyFunc).ToNode();
+
+            node.Inputs[0].Add(2);
+            node.Inputs[1].Add(3.14f);
+
+            var extractor1 = node.Outputs[0].Terminate<double>();
+            var extractor2 = node.Outputs[1].Terminate<int>();
+
+            extractor1.WaitForResults(1);
+            extractor2.WaitForResults(1);
+
+            Assert.Equal(expected: 6.28, actual: extractor1.Results().First(), precision: 6);
+            Assert.Equal(expected: 6, actual: extractor2.Results().First());
+        }
     }
 }

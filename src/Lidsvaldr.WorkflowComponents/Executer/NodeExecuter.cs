@@ -133,7 +133,9 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             }
 
             var outputs = Enumerable.Empty<NodeOutput>().ToList();
-            outputs.AddRange(parameters.Where(p => p.IsOut).Select(p => new NodeOutput(p.ParameterType)));
+            outputs
+                .AddRange(parameters.Where(p => p.IsOut)
+                .Select(p => new NodeOutput(p.ParameterType.GetElementType())));
             if (method.ReturnType != typeof(void))
             {
                 outputs.Add(new NodeOutput(method.ReturnType));
@@ -183,7 +185,11 @@ namespace Lidsvaldr.WorkflowComponents.Executer
                     }).ToList();
 
                     var outParameters = (Outputs.Any())
-                        ? Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray()
+                        ? Outputs
+                            .Take(Outputs.Length - 1)
+                            .Select(output => output.ValueType)
+                            .Select(type => type.IsValueType ? Activator.CreateInstance(type) as object : null)
+                            .ToArray()
                         : Enumerable.Empty<object>().ToArray();
                     parameters.AddRange(outParameters);
 
