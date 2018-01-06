@@ -11,13 +11,27 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         private readonly Type _type;
         private readonly List<IValueSource> _sources = new List<IValueSource>();
         private readonly object _lockGuard = new object();
-        private bool _valueReady = false;
+        private volatile bool _valueReady = false;
         private volatile bool _capturingValue = false;
         private object _capturedValue = null;
-        private int _lastValueSource = 0;
 
-        public bool ValueReady => _valueReady && !_capturingValue;
+        public bool ValueReady => _valueReady;
         public event Action ValueCaptured;
+
+        private bool _eventOccurred = false;
+        private bool _silenced = false;
+        internal bool Silenced
+        {
+            get { return _silenced; }
+            set
+            {
+                if (_silenced == value)
+                    return;
+                if (_silenced && _eventOccurred && _valueReady)
+                    ActivateEvent();
+                _silenced = value;
+            }
+        }
 
         public NodeInput(Type t)
         {
@@ -62,13 +76,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 {
                     _capturedValue = null;
                     _valueReady = false;
-                    if (_lastValueSource == _sources.Count)
-                    {
-                        _lastValueSource = 0;
-                    }
                     if (_sources.Count != 0)
                     {
-                        TryCaptureValue(_sources.Skip(_lastValueSource).First());
+                        var rng = new Random();
+                        var ready = _sources.Where(s => s.IsValueReady).ToArray();
+                        TryCaptureValue(ready[rng.Next(ready.Length)]);
                     }
                     return true;
                 }
@@ -76,6 +88,24 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 {
                     return false;
                 }
+            }
+        }
+
+        private void RemoveSource(IValueSource source)
+        {
+            source.ValueReady -= TryCaptureValue;
+            _sources.Remove(source);
+        }
+
+        private void ActivateEvent()
+        {
+            if (!Silenced)
+            {
+                ValueCaptured?.Invoke();
+            }
+            else
+            {
+                _eventOccurred = true;
             }
         }
 
@@ -94,12 +124,11 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                         _valueReady = source.Pull(out _capturedValue);
                         if (source.IsExhausted)
                         {
-                            source.ValueReady -= TryCaptureValue;
-                            _sources.Remove(source);
+                            RemoveSource(source);
                         }
                         if (_valueReady)
                         {
-                            ValueCaptured?.Invoke();
+                            ActivateEvent();
                         }
                     }
                 }

@@ -94,29 +94,52 @@ namespace Lidsvaldr.WorkflowComponents.Executer
             {
                 if (!IsInputReady || IsBusy)
                     return false;
-                var parameters = Inputs.Select(i =>
+
+                var taskId = Guid.NewGuid();
+                var launchTime = DateTime.Now;
+
+                try
                 {
-                    i.TryTakeValue(out object obj);
-                    return obj;
-                }).ToList();
-                var outParameters = (Outputs.Any()) ? 
-                    Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() : 
+                    _activeTasks.Add(taskId, (launchTime, new List<Action>()));
+
+                    foreach (var i in Inputs) { i.Silenced = true; }
+
+                    var parameters = Inputs.Select(i =>
+                    {
+                        i.TryTakeValue(out object obj);
+                        return obj;
+                    }).ToList();
+
+                    var outParameters = (Outputs.Any()) ?
+                    Enumerable.Repeat(new object(), Outputs.Count() - 1).ToArray() :
                     Enumerable.Empty<object>().ToArray();
-                parameters.AddRange(outParameters);
+                    parameters.AddRange(outParameters);
 
-                Task.Factory.StartNew(() => ExecuteTask(parameters.ToArray(), outParameters.Length));
+                    Task.Factory.StartNew(() => ExecuteTask(
+                        taskId,
+                        launchTime,
+                        parameters.ToArray(),
+                        outParameters.Length));
 
-                return true;
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    _activeTasks.Remove(taskId);
+                    ExceptionOccurred(e);
+                    return false;
+                }
+                finally
+                {
+                    foreach (var i in Inputs) { i.Silenced = false; }
+                }
             }
         }
 
-        private void ExecuteTask(object[] parameters, int outParametersCount)
+        private void ExecuteTask(Guid taskId, DateTime launchTime, object[] parameters, int outParametersCount)
         {
             try
             {
-                var taskId = Guid.NewGuid();
-                var launchTime = DateTime.Now;
-                _activeTasks.Add(taskId, (launchTime, new List<Action>()));
                 var result = Function.DynamicInvoke(parameters);
 
                 lock (_lockGuard)

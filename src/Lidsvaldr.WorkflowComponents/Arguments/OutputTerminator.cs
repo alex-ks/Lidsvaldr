@@ -38,6 +38,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 lock (_lockGuard)
                 {
                     _results.Add((T)value);
+                    TryTakeValue(source);
                 }
             }
         }
