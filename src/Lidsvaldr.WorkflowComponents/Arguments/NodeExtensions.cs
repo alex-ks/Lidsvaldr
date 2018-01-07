@@ -39,7 +39,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         /// <param name="input">Node input entity.</param>
         /// <param name="collection">Value of collection.</param>
         /// <param name="exhaustible">Configures whether source will be exhaustible.</param>
-        public static void Add<T>(this NodeInput input, IEnumerable<T> collection, bool exhaustible = true)
+        public static void AddCollection<T>(this NodeInput input, IEnumerable<T> collection, bool exhaustible = true)
         {
             input.AddSource(new EnumerableSource<T>(collection, exhaustible));
         }

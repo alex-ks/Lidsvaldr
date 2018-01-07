@@ -186,6 +186,14 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
                 finally
                 {
                     _capturingValue = false;
+                    if (!_valueReady)
+                    {
+                        var potentiallyMissed = _sources.RandomShuffle().FirstOrDefault(x => x.IsValueReady);
+                        if (potentiallyMissed != null)
+                        {
+                            TryCaptureValue(potentiallyMissed);
+                        }
+                    }
                 }
             }
         }

@@ -131,5 +131,26 @@ namespace Lidsvaldr.WorkflowComponentsTest
             Assert.Equal(expected: 6.28, actual: extractor1.Results().First(), precision: 6);
             Assert.Equal(expected: 6, actual: extractor2.Results().First());
         }
+
+        [Fact]
+        public void SuccessfullOutputSplitTest()
+        {
+            Func<int, int> myInc = x => x + 1;
+            Func<int, int, int> myAdd = (x, y) => x + y;
+
+            var inputs = new[] { 1, 2 };
+
+            var node1 = myInc.ToNode();
+            node1.Inputs[0].AddCollection(inputs);
+
+            var node2 = myAdd.ToNode();
+            node2.Inputs[0].Add(node1.Outputs[0]);
+            node2.Inputs[1].Add(node1.Outputs[0]);
+
+            var resultExtractor = node2.Outputs[0].Terminate<int>();
+            resultExtractor.WaitForResults(1);
+
+            Assert.Equal(expected: 5, actual: resultExtractor.Results().First());
+        }
     }
 }
