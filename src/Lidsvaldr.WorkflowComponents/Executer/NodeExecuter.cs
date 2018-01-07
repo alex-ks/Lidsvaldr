@@ -186,7 +186,7 @@ namespace Lidsvaldr.WorkflowComponents.Executer
 
                     var outParameters = (Outputs.Any())
                         ? Outputs
-                            .Take(Outputs.Length - 1)
+                            .Take(Function.Method.ReturnType == typeof(void) ? Outputs.Length : Outputs.Length - 1)
                             .Select(output => output.ValueType)
                             .Select(type => type.IsValueType ? Activator.CreateInstance(type) as object : null)
                             .ToArray()

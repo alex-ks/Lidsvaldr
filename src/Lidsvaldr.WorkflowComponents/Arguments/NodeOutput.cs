@@ -18,7 +18,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
         /// <summary>
         /// Value source set. Used for non-exclusive mode.
         /// </summary>
-        private readonly SortedSet<OutputSource> _sources = new SortedSet<OutputSource>();
+        private readonly IList<OutputSource> _sources = new List<OutputSource>();
         /// <summary>
         /// Mutex.
         /// </summary>
