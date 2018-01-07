@@ -9,7 +9,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
     /// Input source entity that contains constant value.
     /// </summary>
     /// <typeparam name="T">Type of value.</typeparam>
-    public sealed class ConstSource<T> : AbstractInputValueSource<T>
+    public sealed class ConstSource<T> : AbstractValueSource<T>
     {
         /// <summary>
         /// Source value.

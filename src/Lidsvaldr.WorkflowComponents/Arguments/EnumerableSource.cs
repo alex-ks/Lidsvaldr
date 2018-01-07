@@ -9,7 +9,7 @@ namespace Lidsvaldr.WorkflowComponents.Arguments
     /// Input source entity that contains enumerable value.
     /// </summary>
     /// <typeparam name="T">Type of collection element.</typeparam>
-    public class EnumerableSource<T> : AbstractInputValueSource<T>
+    public class EnumerableSource<T> : AbstractValueSource<T>
     {
         /// <summary>
         /// Source value enumerator.

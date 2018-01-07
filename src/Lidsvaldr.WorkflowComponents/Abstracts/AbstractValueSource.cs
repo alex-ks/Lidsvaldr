@@ -7,7 +7,7 @@ namespace Lidsvaldr.WorkflowComponents.Abstracts
     /// Represents an abstract class for input source entity.
     /// </summary>
     /// <typeparam name="T">Type of source value.</typeparam>
-    public abstract class AbstractInputValueSource<T> : IValueSource
+    public abstract class AbstractValueSource<T> : IValueSource
     {
         /// <summary>
         /// Indicates whether source value is exhausted.
