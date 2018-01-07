@@ -43,7 +43,8 @@ namespace Lidsvaldr.ModelTask
             logger.Info($"End photo slicing. Output length: {res.Count()}. Output: {String.Join(", ", res)}");
         }
 
-        static void PhotoPostprocessing(byte photo) {
+        static void PhotoPostprocessing(byte photo)
+        {
             logger.Info($"Start photo postprocessing. Input: {photo}");
 
             var convert8to16Node = new Convert8bitTo16bitDelegate(Convert8bitTo16bit).ToNode();
@@ -89,7 +90,8 @@ namespace Lidsvaldr.ModelTask
             return image8;
         }
 
-        static short AutoColor(short image) {
+        static short AutoColor(short image)
+        {
             logger.Info($"Start auto color correction. Input: {image}");
             short correctImage = Convert.ToInt16(image * (rand.Next(2, 5)));
             Task.Delay(rand.Next(1000, 3000)).Wait();
@@ -97,7 +99,8 @@ namespace Lidsvaldr.ModelTask
             return correctImage;
         }
 
-        static short HighPass(short image) {
+        static short HighPass(short image)
+        {
             logger.Info($"Start high pass filter. Input: {image}");
             short correctImage = Convert.ToInt16(image * (rand.Next(6, 10)));
             Task.Delay(rand.Next(1000, 3000)).Wait();
@@ -105,7 +108,8 @@ namespace Lidsvaldr.ModelTask
             return correctImage;
         }
 
-        static short MergeImages(short image1, short image2) {
+        static short MergeImages(short image1, short image2)
+        {
             logger.Info($"Start merge images. Input: {image1}, {image2}");
             var res = image1 + image2;
             Task.Delay(rand.Next(1000, 3000)).Wait();
@@ -117,7 +121,7 @@ namespace Lidsvaldr.ModelTask
         {
             logger.Info($"Start photo slicing. Input: {image}, count: {count}");
             res = Enumerable.Repeat<int>(image, count);
-            res = res.Select((val, index) => val * (index+1));
+            res = res.Select((val, index) => val * (index + 1));
             Task.Delay(rand.Next(1000, 5000)).Wait();
             logger.Info($"End photo slicing. Output: {String.Join(", ", res)}");
         }
