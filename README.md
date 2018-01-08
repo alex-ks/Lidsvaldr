@@ -9,15 +9,17 @@ Workflow automation framework for .NET Core
 
 IEnumerable<Picture> ProcessPhotos(IList<Picture> photos)
 {
-    var autoColor = new Func<Picture, Picture>(AutoColor).ToNode(threadLimit: 4);
+    var autoColor = new Func<Picture, Picture>(AutoColor).ToNode(threadLimit: 2);
+    var edgeDetection = new Func<Picture, Picture>(DetectEdges).ToNode(threadLimit: 2);
     var mergePhotos = new Func<Picture, Picture, Picture>(MergePhotos).ToNode();
 
-    autoColor.Input[0].Add(photos);
+    autoColor.Input[0].AddCollection(photos);
+    edgeDetection.Input[0].AddCollection(photos);
     mergePhotos.Input[0].Add(autoColor.Output[0]);
-    mergePhotos.Input[1].Add(autoColor.Output[0]);
+    mergePhotos.Input[1].Add(edgeDetection.Output[0]);
     
     var terminator = mergePhotos.Output[0].Terminate<Picture>();
-    terminator.WaitForResults(photos.Count / 2);
+    terminator.WaitForResults(photos.Count);
     
     return terminator.Results();
 }
