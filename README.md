@@ -1,5 +1,5 @@
 # Liðsvaldr
-<a href="http://ccfit.nsu.ru/">
+<a href="https://github.com/alex-ks/Lidsvaldr">
     <img src="http://ccfit.nsu.ru/~komissarov/Lidsvaldr.svg" width="40%" height="40%">
 </a>
 
@@ -23,4 +23,4 @@ IEnumerable<Picture> ProcessPhotos(IList<Picture> photos)
 }
 ```
 
-See Wiki pages for details.
+See [Wiki pages](https://github.com/alex-ks/Lidsvaldr/wiki) for details.
