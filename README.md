@@ -1,6 +1,6 @@
 # Liðsvaldr
 <a href="https://github.com/alex-ks/Lidsvaldr">
-    <img src="http://ccfit.nsu.ru/~komissarov/Lidsvaldr.svg" width="40%" height="40%">
+    <img src="https://github.com/alex-ks/Lidsvaldr/blob/master/Lidsvaldr.svg" width="40%" height="40%">
 </a>
 
 Workflow automation framework for .NET Core
